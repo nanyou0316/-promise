@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script>
+    function myPromise(executor){
+      let self=this
+      self.status='pedding'
+      self.value=null
+      self.reason=null
+      self.onFullfilledCallBacks=[]
+      self.onRejectedCallBacks=[]
+      function resolve(value){
+        if(self.status==='pedding'){
+          self.value=value
+          self.status="fullfilled"
+          self.onFullfilledCallBacks.forEach(item=>item(value))
+        }
+
+      }
+      function reject(reason){
+        if(self.status==='pedding'){
+          self.reason=reason
+          self.status="rejected"
+          self.onRejectedCallBacks.forEach(item=>item(reason))
+        }
+      }
+      //实例化之后立即执行一遍
+      try {
+        executor(resolve,reject)
+      } catch (error) {
+        reject(error)
+      }
+    }
+    myPromise.prototype.then=function(onFullfilled,onRejected){
+      console.log("myPromise.prototype.then初始化");
+      onFullfilled=typeof onFullfilled ==="function"?onFullfilled:function(data){resolve(data)}
+      onRejected=typeof onRejected ==="function"?onRejected:function(err){throw err}
+      let self=this
+      // if(self.status==="pedding"){
+      //   self.onFullfilledCallBacks.push(onFullfilled)
+      //   self.onRejectedCallBacks.push(onRejected)
+      // }
+      /**链式调用**/
+      if(self.status==="fullfilled"){
+        return new myPromise((resolve,reject)=>{
+          try {
+            let x=onFullfilled(self.value)
+            //x.then(resolve,reject)===x.then((arg)=>resolve(arg),(arg)=>reject(arg))
+            x instanceof myPromise?x.then(resolve,reject):resolve(x)
+          }catch(err){
+            reject(err)
+          }
+        })
+      }
+      if(self.status==="rejected"){
+        return new myPromise((resolve,reject)=>{
+          try {
+            let x=onRejected(self.reason)
+            x instanceof myPromise?x.then(resolve,reject):resolve(x)
+          }catch(err){
+            reject(err)
+          }
+        })
+      }
+      if(self.status==="pedding"){
+        return new myPromise((resolve,reject)=>{
+          self.onFullfilledCallBacks.push(()=>{
+            let x=onFullfilled(self.value)
+            x instanceof myPromise?x.then(resolve,reject):resolve(x)
+          })
+          self.onRejectedCallBacks.push(()=>{
+            let x=onRejected(self.reason)
+            x instanceof myPromise?x.then(resolve,reject):resolve(x)
+          })
+        })
+      }
+
+    }
+    let demo=new myPromise((resolve,reject)=>{
+        setTimeout(()=>{
+          resolve(123)
+        },1000)
+      })
+      demo.then(res=>{
+        console.log(res);
+        return new myPromise((resolve,reject)=>{
+          resolve(456)
+        })
+      }).then(data=>console.log(data))
+  </script>
+</body>
+
+</html>

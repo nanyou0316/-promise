@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script>
+    function myPromise(executor){
+      let self=this
+      self.status='pedding'
+      self.value=null
+      self.reason=null
+      self.onFullfilledCallBacks=[]
+      self.onRejectedCallBacks=[]
+      function resolve(value){
+        console.log("resolve init .....");
+        console.log("value:"+value);
+        if(self.status==='pedding'){
+          console.log("pedding.....");
+          self.value=value
+          self.status="fullfilled"
+          self.onFullfilledCallBacks.forEach(item=>{
+            console.log("item.....:",item);
+            item(value)
+          })
+        }
+
+      }
+      function reject(reason){
+        console.log("reject init .....");
+        if(self.status==='pedding'){
+          self.reason=reason
+          self.status="rejected"
+          self.onRejectedCallBacks.forEach(item=>item(reason))
+        }
+      }
+      //实例化之后立即执行一遍
+      try {
+        executor(resolve,reject)
+      } catch (error) {
+        reject(error)
+      }
+    }
+    myPromise.prototype.then=function(onFullfilled,onRejected){
+      console.log("then init ...");
+      onFullfilled=typeof onFullfilled ==="function"?onFullfilled:function(data){resolve(data)}
+      onRejected=typeof onRejected ==="function"?onRejected:function(err){throw err}
+      let self=this
+      if(self.status==="pedding"){
+        console.log(111111);
+        self.onFullfilledCallBacks.push(onFullfilled)
+        self.onRejectedCallBacks.push(onRejected)
+      }
+
+    }
+    let demo=new myPromise((resolve,reject)=>{
+        setTimeout(()=>{
+          resolve(123)
+        },1000)
+      })
+      demo.then(res=>{
+        console.log(res);
+      })
+  </script>
+</body>
+
+</html>
